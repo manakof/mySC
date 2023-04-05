@@ -16,7 +16,8 @@ NetAddr.localAddr
   /*--  old mac --*/
 //n = NetAddr.new("192.168.0.10",12345);
   /*--  new mac --*/
-//n = NetAddr.new("192.168.0.10",12345);
+n = NetAddr.new("172.20.10.6",12345);
+n = NetAddr.new("192.168.122.1",12345);
   /*-- local --*/
 n = NetAddr.new("localhost",12345);
 
