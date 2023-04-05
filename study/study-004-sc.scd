@@ -1,14 +1,16 @@
 s.boot;
 s.makeWindow;
 s.scope;
+s.freqscope;
 s.dumpOSC;
 s.queryAllNodes();
-
+/*
 thisProcess.openUDPPort(3000);
 thisProcess.openPorts;
 NetAddr.langPort
 NetAddr.localAddr
-  /*-- superCollider --*/
+*/
+/*-- superCollider --*/
 //n = NetAddr("127.0.0.1",57120);
 //n = NetAddr("localhost",57110);
   /*--  old mac --*/
@@ -19,28 +21,48 @@ NetAddr.localAddr
 n = NetAddr.new("localhost",12345);
 
 (
-SynthDef(\my_test,{|freq=330,pan=0,amp=0.5 |
+SynthDef(\my_sin,{|freq(440),pan(0),amp(0.5),atk(0.1),rel(0.5),lev(0.6),cuv(-4.0)|
   var source,env;
-  freq = Line.kr(50.0,freq,1);
-  pan = SinOsc.kr(3);
-  source = Saw.ar(freq);
-  env = Env.perc(0.9,0.9,2.5,-8);
+  source = Pulse.ar(freq);
+  env = Env.perc(atk,rel,lev,cuv);
   source = source * EnvGen.ar(env,doneAction:2);
   Out.ar(0,Pan2.ar(source,pan,amp));
-  SendReply.kr(Impulse.kr(30),'/my_test',[freq,amp,pan]);
+  SendReply.kr(Impulse.kr(1),'/sc/my_sin',[freq,amp,pan,atk,rel,lev,cuv]);
 }).store;
 )
-
+a = Synth(\my_sin,[\freq,83.midicps]);
 (
-SynthDef("my_trig",{
-  SendTrig.kr(Dust.kr(1.0),0,0.9);
-}).send(s);
+SynthDef(\my_saw,{|freq=330,pan=0,amp=0.5 ,atk(0.1),rel(0.5),lev(0.6),cuv(-4.0)|
+  var source,env;
+  source = Saw.ar(freq);
+  env = Env.perc(atk,rel,lev,cuv);
+  source = source * EnvGen.ar(env,doneAction:2);
+  Out.ar(0,Pan2.ar(source,pan,amp));
+  SendReply.kr(Impulse.kr(1),'/sc/my_saw',[freq,amp,pan,atk,rel,lev,cuv]);
+}).store;
 )
+a = Synth(\my_saw,[\freq,30]);
 (
- f = OSCFunc({|msg,time,addr,recvPort|msg.postln;n.sendMsg("/sc/test",msg[3])},"/my_test");
+SynthDef(\my_noise,{|freq=330,pan=0,amp=0.5 ,atk(0.1),rel(0.5),lev(0.6),cuv(-4.0)|
+  var source,env;
+  source = WhiteNoise.ar(0.5);
+  env = Env.perc(atk,rel,lev,cuv);
+  source = source * EnvGen.ar(env,doneAction:2);
+  Out.ar(0,Pan2.ar(source,pan,amp));
+  SendReply.kr(Impulse.kr(1),'/sc/my_noise',[freq,amp,pan,atk,rel,lev,cuv]);
+}).store;
 )
+a = Synth(\my_noise);
+(
+e.free;
 f.free;
-a = Synth(\my_test);
-p = Pbind(\instrument,\my_test).play;
+g.free;
+e = OSCFunc({|msg,time,addr,recvPort|msg.postln;n.sendMsg("/sc/my_sin",msg[3])},"/sc/my_sin");
+f = OSCFunc({|msg,time,addr,recvPort|msg.postln;n.sendMsg("/sc/my_saw",msg[3])},"/sc/my_saw");
+g = OSCFunc({|msg,time,addr,recvPort|msg.postln;n.sendMsg("/sc/my_noise",msg[3])},"/sc/my_noise");
+)
+a = Pbind(\instrument,\my_sin,\dur,Pseq([0.8],inf));
+b = Pbind(\instrument,\my_saw,\dur,Pseq([1],inf));
+c = Pbind(\instrument,\my_noise,\dur,Pseq([1.5],inf));
+p = Ppar([a,b,c]).play;
 p.stop;
-
